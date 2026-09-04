@@ -50,6 +50,9 @@ logger = logging.getLogger(__name__)
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
 
+# ==================== USER DATA STORAGE ====================
+user_data = {}  # ✅ গ্লোবাল ডিকশনারি - bot.user_data-এর পরিবর্তে
+
 # ==================== DATABASE ====================
 class Database:
     def __init__(self, db_path: str = DB_PATH):
@@ -240,11 +243,12 @@ def upload_text_cmd(message: types.Message):
     bot.register_next_step_handler(msg, process_text_title)
 
 def process_upload_title(message: types.Message):
+    user_id = message.from_user.id
     title = message.text.strip()
     if not title:
         bot.reply_to(message, "❌ 𝐓𝐢𝐭𝐥𝐞 𝐜𝐚𝐧'𝐭 𝐛𝐞 𝐞𝐦𝐩𝐭𝐲.")
         return
-    bot.user_data[message.from_user.id] = {'title': title}
+    user_data[user_id] = {'title': title}  # ✅ ব্যবহার করুন user_data
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     keyboard.add(
         KeyboardButton("🎬 𝐕𝐢𝐝𝐞𝐨"),
@@ -269,13 +273,13 @@ def process_upload_type(message: types.Message):
     if not content_type:
         bot.reply_to(message, "❌ 𝐈𝐧𝐯𝐚𝐥𝐢𝐝 𝐬𝐞𝐥𝐞𝐜𝐭𝐢𝐨𝐧. 𝐔𝐬𝐞 /upload 𝐚𝐠𝐚𝐢𝐧.")
         return
-    bot.user_data[user_id]['content_type'] = content_type
+    user_data[user_id]['content_type'] = content_type
 
     if content_type in ['text', 'html']:
-        msg = bot.reply_to(message, f"📝 <b>𝐒𝐞𝐧𝐝 𝐭𝐡𝐞 𝐭𝐞𝐱𝐭/𝐇𝐓𝐌𝐋 𝐜𝐨𝐧𝐭𝐞𝐧𝐭:</b>\n𝐓𝐢𝐭𝐥𝐞: <code>{bot.user_data[user_id]['title']}</code>")
+        msg = bot.reply_to(message, f"📝 <b>𝐒𝐞𝐧𝐝 𝐭𝐡𝐞 𝐭𝐞𝐱𝐭/𝐇𝐓𝐌𝐋 𝐜𝐨𝐧𝐭𝐞𝐧𝐭:</b>\n𝐓𝐢𝐭𝐥𝐞: <code>{user_data[user_id]['title']}</code>")
         bot.register_next_step_handler(msg, process_text_content)
     else:
-        msg = bot.reply_to(message, f"📤 <b>𝐒𝐞𝐧𝐝 𝐭𝐡𝐞 𝐟𝐢𝐥𝐞:</b>\n𝐓𝐢𝐭𝐥𝐞: <code>{bot.user_data[user_id]['title']}</code>")
+        msg = bot.reply_to(message, f"📤 <b>𝐒𝐞𝐧𝐝 𝐭𝐡𝐞 𝐟𝐢𝐥𝐞:</b>\n𝐓𝐢𝐭𝐥𝐞: <code>{user_data[user_id]['title']}</code>")
         bot.register_next_step_handler(msg, process_upload_file)
 
 def process_text_title(message: types.Message):
@@ -284,7 +288,7 @@ def process_text_title(message: types.Message):
     if not title:
         bot.reply_to(message, "❌ 𝐓𝐢𝐭𝐥𝐞 𝐜𝐚𝐧'𝐭 𝐛𝐞 𝐞𝐦𝐩𝐭𝐲.")
         return
-    bot.user_data[user_id] = {'title': title}
+    user_data[user_id] = {'title': title}
     msg = bot.reply_to(message, f"📝 <b>𝐒𝐞𝐧𝐝 𝐭𝐡𝐞 𝐭𝐞𝐱𝐭/𝐇𝐓𝐌𝐋 𝐜𝐨𝐧𝐭𝐞𝐧𝐭:</b>\n𝐓𝐢𝐭𝐥𝐞: <code>{title}</code>\n\n💡 <i>𝐅𝐨𝐫 𝐇𝐓𝐌𝐋, 𝐢𝐧𝐜𝐥𝐮𝐝𝐞 &lt;html&gt; &lt;body&gt; 𝐭𝐚𝐠𝐬</i>")
     bot.register_next_step_handler(msg, process_text_content)
 
@@ -294,7 +298,7 @@ def process_text_content(message: types.Message):
     if not text_content:
         bot.reply_to(message, "❌ 𝐂𝐨𝐧𝐭𝐞𝐧𝐭 𝐜𝐚𝐧'𝐭 𝐛𝐞 𝐞𝐦𝐩𝐭𝐲.")
         return
-    bot.user_data[user_id]['text_content'] = text_content
+    user_data[user_id]['text_content'] = text_content
     msg = bot.reply_to(message, "🔑 <b>𝐄𝐧𝐭𝐞𝐫 𝐚 𝐩𝐚𝐬𝐬𝐰𝐨𝐫𝐝 𝐟𝐨𝐫 𝐭𝐡𝐢𝐬 𝐜𝐨𝐧𝐭𝐞𝐧𝐭:</b>")
     bot.register_next_step_handler(msg, process_upload_password)
 
@@ -304,7 +308,7 @@ def process_upload_file(message: types.Message):
         bot.reply_to(message, "❌ 𝐏𝐥𝐞𝐚𝐬𝐞 𝐬𝐞𝐧𝐝 𝐚 𝐟𝐢𝐥𝐞.")
         return
     file_id = message.document.file_id if message.document else message.video.file_id
-    bot.user_data[user_id]['file_id'] = file_id
+    user_data[user_id]['file_id'] = file_id
     msg = bot.reply_to(message, "🔑 <b>𝐄𝐧𝐭𝐞𝐫 𝐚 𝐩𝐚𝐬𝐬𝐰𝐨𝐫𝐝 𝐟𝐨𝐫 𝐭𝐡𝐢𝐬 𝐜𝐨𝐧𝐭𝐞𝐧𝐭:</b>")
     bot.register_next_step_handler(msg, process_upload_password)
 
@@ -314,7 +318,7 @@ def process_upload_password(message: types.Message):
     if not password:
         bot.reply_to(message, "❌ 𝐏𝐚𝐬𝐬𝐰𝐨𝐫𝐝 𝐜𝐚𝐧'𝐭 𝐛𝐞 𝐞𝐦𝐩𝐭𝐲.")
         return
-    data = bot.user_data.get(user_id, {})
+    data = user_data.get(user_id, {})
     title = data.get('title')
     content_type = data.get('content_type', 'document')
     file_id = data.get('file_id')
@@ -327,7 +331,7 @@ def process_upload_password(message: types.Message):
     db.add_content(title, content_type, file_id, text_content, password, user_id)
     emoji = get_content_emoji(content_type)
     bot.reply_to(message, f"✅ <b>𝐂𝐨𝐧𝐭𝐞𝐧𝐭 𝐚𝐝𝐝𝐞𝐝 𝐬𝐮𝐜𝐜𝐞𝐬𝐬𝐟𝐮𝐥𝐥𝐲!</b>\n{emoji} <b>𝐓𝐢𝐭𝐥𝐞:</b> <code>{title}</code>\n📂 <b>𝐓𝐲𝐩𝐞:</b> {content_type.upper()}\n🔑 <b>𝐏𝐚𝐬𝐬𝐰𝐨𝐫𝐝:</b> <code>{password}</code>")
-    del bot.user_data[user_id]
+    user_data.pop(user_id, None)
 
 # ==================== USER COMMANDS ====================
 @bot.message_handler(commands=['contents'])
@@ -397,7 +401,6 @@ def process_password_input(message: types.Message, title: str):
                 caption = f"{emoji} <b>{title}</b>\n🔓 <b>𝐀𝐜𝐜𝐞𝐬𝐬 𝐠𝐫𝐚𝐧𝐭𝐞𝐝</b>"
                 
                 if content_type in ['text', 'html']:
-                    # Send as text
                     bot.send_message(user_id, f"{caption}\n\n<pre>{content['text_content']}</pre>")
                 elif content_type == 'video':
                     bot.send_video(user_id, content['file_id'], caption=caption)
@@ -487,4 +490,6 @@ if __name__ == "__main__":
     flask_thread.start()
     try:
         bot.infinity_polling(timeout=30)
-    except Except
+    except Exception as e:
+        logger.error(f"Bot polling error: {e}")
+        time.sleep(5)
